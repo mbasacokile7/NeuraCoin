@@ -17,7 +17,7 @@ const app = express();
 env.config();
 
 // Store the port number in an Environment Variable
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 
 // Store my AlphaVantage API-Key in an environment variable
 const apiKey = process.env.API_KEY;
@@ -192,7 +192,6 @@ function cleanLLMHtmlResponse(rawContent) {
 }
 
 
-  // Initialise the Server on Port 3000(Can change)
-app.listen(port, ()=>{
-    console.log(`The server is running on Port: ${port}`);
-});
+
+
+export default app;
