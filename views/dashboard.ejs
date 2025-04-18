@@ -1,0 +1,306 @@
+<%- include('partials/header'); %>
+
+
+<section class="dashboard-sections">
+    <a href="/select" class="back-button">
+        <i class="fa-solid fa-arrow-left"></i> Back
+    </a>
+    
+    <h1 id="dashboard-main-heading"><%- userCoin %> <%- selectedTimeFrame %> Price Analysis and Insights</h1>
+    
+    <div class="container py-4 dashboard-container-1">
+        <div class="row g-3">
+            <!-- Chart Column -->
+            <div class="col-md-8">
+                <div class="chart-box position-relative">
+                    <h5 id="Chart-title"><%- userCoin %> Crypto Price Chart</h5>
+                    <div class="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-3">
+                        <!--Drop Down Menu for selecting different timeframe filters-->
+                        <label for="rangeSelect">Select Range:</label>
+                        <select id="rangeSelect" class="form-select form-select-sm bg-dark text-white border-0 chart-select"
+                            style="width: auto;">
+                            <!-- The Time Frame Filters injected dynamically -->
+                        </select>
+                    </div>
+
+                    <canvas id="cryptoChart" width="100%" height="100%"></canvas>
+                </div>
+            </div>
+
+            <!-- Metrics Column -->
+            <div class="col-md-4">
+                <div class="row g-3">
+                    <!-- Current Price -->
+                    <div class="col-12">
+                        <div class="metric-box text-center">
+                            <div class="metric-title">Current Price (USD)</div>
+                            <div class="metric-value text-success" id="currentPrice">$65,820.96</div>
+                        </div>
+                    </div>
+
+                    <!-- % Gain and Volatility -->
+                    <div class="col-12">
+                        <div class="row g-2">
+                            <!-- Percentage Gain -->
+                            <div class="col-6">
+                                <div class="metric-box text-center">
+                                    <div class="metric-title">Gain</div>
+                                    <div class="metric-value text-success" id="percentageGain">+12.5%</div>
+                                </div>
+                            </div>
+                            <!-- Volatility -->
+                            <div class="col-6">
+                                <div class="metric-box text-center">
+                                    <div class="metric-title">Volatility</div>
+                                    <div class="metric-value text-warning" id="percentageVolatility">2.1%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Insights -->
+        <div class="container py-4 insights-container">
+            <div><%- insights %></div>
+        </div>
+    </div>
+</section>
+<!--Script for Loader-->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem("showLoader") === "true") {
+            document.getElementById("loader").style.display = "flex";
+
+            // optional: remove the loader after a short delay or when everything is ready
+            window.addEventListener("load", () => {
+                document.getElementById("loader").style.display = "none";
+                localStorage.removeItem("showLoader");
+            });
+        }
+    });
+</script>
+    <!-- ChartJS CDN-->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const userCoin = "<%- userCoin %>";
+        const actualData = <%- JSON.stringify(actualData) %>;
+        const timeframe = "<%- selectedTimeFrame %>";
+        let chartInstance ;
+
+        //TODO: Create a variable for ForecastData
+
+
+        // Extracting date and price from data
+        const labels = actualData.map(d => d.ds);
+        const prices = actualData.map(d => d.y);
+        
+
+        // Setup chart when DOM is loaded
+        document.addEventListener("DOMContentLoaded", () => {
+                updateRangeOptions(timeframe);
+                initChart(labels, prices);
+                // Only filter when user picks a range
+                document.getElementById("rangeSelect").addEventListener("change", filterByRange);
+                
+            });
+
+        function updateRangeOptions(timeframe) {
+                const select = document.getElementById("rangeSelect");
+                select.innerHTML = "";
+
+                let options = [];
+
+                if (timeframe === "Daily") {
+                    options = [
+                        { label: "Last 7 Days", value: 7 },
+                        { label: "Last 14 Days", value: 14 },
+                        { label: "Last 30 Days", value: 30 },
+                    ];
+                } else if (timeframe === "Weekly") {
+                    options = [
+                        { label: "Last Week", value: 2 },
+                        { label: "Last 2 Weeks", value: 4 },
+                        { label: "Last 4 Weeks", value: 8 },
+                    ];
+                } else if (timeframe === "Monthly") {
+                    options = [
+                        { label: "Last Month", value: 2 },
+                        { label: "Last 3 Months", value: 4 },
+                        { label: "Last 6 Months", value: 6 },
+                    ];
+                }
+                // Insert "Show All" option at the top
+                options.unshift({ label: "Show All", value: "all" });
+                options.forEach(opt => {
+                    const option = document.createElement("option");
+                    option.value = opt.value;
+                    option.textContent = opt.label;
+                    select.appendChild(option);
+                });
+        }
+
+        function filterByRange() {
+                const selectedValue = document.getElementById("rangeSelect").value;
+
+                let filtered = [];
+
+                if (selectedValue === "all") {
+                    filtered = actualData;
+                } else {
+                    const count = parseInt(selectedValue);
+                    const safeCount = Math.min(count, actualData.length);
+                    filtered = actualData.slice(-safeCount);
+                }
+
+                const filteredLabels = filtered.map(d => d.ds);
+                const filteredPrices = filtered.map(d => d.y);
+
+                // Define tick positions: start, middle, end
+                const total = filteredLabels.length;
+                const tickIndices = [0, Math.floor(total / 2), total - 1];
+                const tickValues = tickIndices.map(i => filteredLabels[i]);
+
+                // Update price metrics
+                const currentPrice = filteredPrices[filteredPrices.length - 1];
+                const startPrice = filteredPrices[0];
+                const gain = ((currentPrice - startPrice) / startPrice) * 100;
+                const volatility = calcVolatility(filteredPrices);
+
+                document.getElementById('currentPrice').textContent = `$${currentPrice.toFixed(2)}`;
+                document.getElementById('percentageGain').textContent = `${gain.toFixed(2)}%`;
+                document.getElementById('percentageVolatility').textContent = `${volatility.toFixed(2)}%`;
+
+                // Set new data to chart
+                chartInstance.data.labels = filteredLabels;
+                chartInstance.data.datasets[0].data = filteredPrices;
+
+                // Update x-axis tick formatter
+                chartInstance.options.scales.x.ticks.callback = function (value, index) {
+                    const label = chartInstance.data.labels[index];
+                    if (tickValues.includes(label)) {
+                        const dateObj = new Date(label);
+                        return dateObj.toLocaleDateString('en-US', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: '2-digit'
+                        });
+                    }
+                    return '';
+                };
+
+                chartInstance.update();
+            }
+
+
+
+        // Define tick positions: start, middle, end
+        const total = labels.length;
+        const tickIndices = [0, Math.floor(total / 2), total - 1];
+        const tickValues = tickIndices.map(i => labels[i]);
+
+        // Price Metrics
+        const currentPrice = prices[prices.length - 1];
+        const startPrice = prices[0];
+        const gain = ((currentPrice - startPrice) / startPrice) * 100;
+        const volatility = calcVolatility(prices);
+
+        // Change the metrics data based on calculations
+        document.getElementById('currentPrice').textContent = `$${currentPrice.toFixed(2)}`;
+        document.getElementById('percentageGain').textContent = `${gain.toFixed(2)}%`;
+        document.getElementById('percentageVolatility').textContent = `${volatility.toFixed(2)}%`;
+
+
+        //TODO: Mapthe forecast data to the coorect format
+        
+
+        // Draw Chart
+        function initChart(labels, prices) {
+            const ctx = document.getElementById("cryptoChart").getContext("2d");
+            chartInstance = new Chart(ctx, {
+                type: "line",
+                data: {
+                    //TODO: Include the forecastData Labels
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: `${userCoin}Crypto Price`,
+                            data: prices,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            fill: true,
+                            backgroundColor: createGradient(ctx),
+                            tension: 0.4,
+                            pointRadius: 0
+                        }/*,
+                    // TODO: Include the Predicted Prices Data
+                    
+                    {
+                        label: "Predicted Prices",
+                        data: [...Array(actualPrices.length).fill(null), ...forecastPrices], 
+                        borderColor: "red",
+                        borderDash: [5, 5],
+                        fill: false
+                    }
+                    */
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { bottom: 70 } },
+                    scales: {
+                        x: {
+                            type: 'category',
+                            ticks: {
+                                color: '#ccc',
+                                autoSkip: false, // ensure all ticks are considered
+                                callback: function (value, index) {
+                                    const label = labels[index];
+                                    if (tickValues.includes(label)) {
+                                        const dateObj = new Date(label);
+                                        return dateObj.toLocaleDateString('en-US', {day: 'numeric', month: 'short', year:"2-digit"}); // "Apr 12"
+                                    }
+                                    return '';
+                                },
+                                maxRotation: 0,   // Prevent rotation
+                                minRotation: 0,   // Prevent rotation
+                            },
+                            grid: { display: false }
+                        },
+                        y: {
+                            ticks: { color: '#ccc' },
+                            grid: { display: false }
+                        }
+
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+
+                }
+            });
+
+            };
+    
+
+        // Volatility calculation (standard deviation)
+        function calcVolatility(prices) {
+                const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+                const variance = prices.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / prices.length;
+                return Math.sqrt(variance);
+            }
+        // Gradient helper for line chart
+        function createGradient(ctx) {
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(0, 255, 204, 0.3)');
+                gradient.addColorStop(1, 'rgba(0, 255, 204, 0)');
+                return gradient;
+            }
+    </script>
+
+
+
+
+
+<%- include('partials/footer'); %>
