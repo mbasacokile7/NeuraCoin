@@ -192,6 +192,6 @@ function cleanLLMHtmlResponse(rawContent) {
 }
 
 
-
+app.listen(PORT, () => console.log(`Server ready on port ${PORT}.`));
 
 export default app;
