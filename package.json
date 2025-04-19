@@ -1,24 +1,23 @@
 {
-  "name": "crypto-price-prediction-dashboard",
+  "name": "NeuraCoin",
   "version": "1.0.0",
   "description": "A Dashboard to allow users to predict the price of cryptocurrencies using AI",
-  "main": "main.js",
+  "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node api/index.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mbasacokile7/Crypto-Price-Prediction-Dashboard.git"
+    "url": "git+https://github.com/mbasacokile7/NeuraCoin.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/mbasacokile7/Crypto-Price-Prediction-Dashboard/issues"
+    "url": "https://github.com/mbasacokile7/NeuraCoin/issues"
   },
-  "homepage": "https://github.com/mbasacokile7/Crypto-Price-Prediction-Dashboard#readme",
+  "homepage": "https://github.com/mbasacokile7/NeuraCoin#readme",
   "dependencies": {
     "axios": "^1.8.4",
     "body-parser": "^1.20.3",
